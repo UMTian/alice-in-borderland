@@ -1,13 +1,24 @@
+// --- FIREBASE CONFIGURATION ---
+// Replace the values below with your own Firebase Config from the console!
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
 const state = {
     currentPlayer: null,
-    players: [
-        { name: "Arisu", badges: 0, status: "READY" },
-        { name: "Usagi", badges: 0, status: "READY" },
-        { name: "Chishiya", badges: 0, status: "READY" },
-        { name: "Kuina", badges: 0, status: "READY" },
-        { name: "Karube", badges: 0, status: "READY" }
-    ],
+    players: [],
     currentStageIndex: 0,
+    isHost: false, // First person to join acts as host
     stages: [
         { title: "PULSE CHECK", task: "Reaction timing test.", status: "active" },
         { title: "LIGHTS OUT", task: "Memory and darkness coordination.", status: "locked" },
@@ -16,10 +27,7 @@ const state = {
     ]
 };
 
-function switchScreen(screenId) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(screenId).classList.add('active');
-}
+// --- MULTIPLAYER LOGIC ---
 
 function registerPlayer() {
     const nameInput = document.getElementById('player-name-input');
@@ -30,15 +38,105 @@ function registerPlayer() {
         return;
     }
 
-    state.currentPlayer = { name: name, badges: 0, status: "READY" };
-    state.players.push(state.currentPlayer);
+    // Save player to LocalState and Firebase
+    state.currentPlayer = {
+        name: name,
+        badges: 0,
+        status: "READY",
+        id: Date.now() // Unique ID for this session
+    };
 
-    // Update UI
+    // Push player to Firebase "players" node
+    const playerRef = database.ref('game/players/' + state.currentPlayer.id);
+    playerRef.set(state.currentPlayer);
+
+    // If game is empty, this player is the host
+    database.ref('game/players').once('value', snapshot => {
+        if (Object.keys(snapshot.val() || {}).length === 1) {
+            state.isHost = true;
+            database.ref('game/status').set('waiting');
+        }
+    });
+
+    // Handle browser close - remove player automatically
+    playerRef.onDisconnect().remove();
+
+    // Update Menu UI
     document.getElementById('registration-form').style.display = 'none';
     document.getElementById('main-menu').style.display = 'block';
     document.getElementById('display-name').innerText = name.toUpperCase();
 
     renderTimeline();
+    listenToPlayers();
+    listenToGameStatus();
+}
+
+function listenToPlayers() {
+    database.ref('game/players').on('value', (snapshot) => {
+        const playersData = snapshot.val() || {};
+        state.players = Object.values(playersData);
+
+        // Refresh local badge count if changed
+        const me = state.players.find(p => p.id === state.currentPlayer.id);
+        if (me) state.currentPlayer.badges = me.badges;
+
+        renderLobby();
+        document.getElementById('display-badges').innerText = state.currentPlayer.badges;
+    });
+}
+
+function listenToGameStatus() {
+    database.ref('game/status').on('value', (snapshot) => {
+        const status = snapshot.val();
+        if (status === 'playing') {
+            switchScreen('screen-game');
+            loadStage(state.currentStageIndex);
+        }
+    });
+}
+
+function goToLobby() {
+    switchScreen('screen-lobby');
+    // Only host can see the "Start" button
+    if (state.isHost) {
+        document.getElementById('start-game-btn').style.display = 'block';
+        document.getElementById('player-status-msg').innerText = "YOU ARE THE HOST. START WHEN READY.";
+    } else {
+        document.getElementById('player-status-msg').innerText = "WAITING FOR HOST TO START...";
+    }
+}
+
+function renderLobby() {
+    const list = document.getElementById('lobby-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    state.players.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'player-item';
+        item.innerHTML = `
+            <div style="display: flex; align-items: center;">
+                <div class="status-indicator"></div>
+                <span>${p.name} ${p.id === state.currentPlayer.id ? '(YOU)' : ''}</span>
+            </div>
+            <div>
+                ${p.badges > 0 ? `<span class="badge">${p.badges}</span>` : '<span style="color:var(--safe-green); font-size:0.7rem;">READY</span>'}
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function startGame() {
+    // Only host triggers this
+    database.ref('game/status').set('playing');
+}
+
+// --- SCREEN & NAVIGATION ---
+
+function switchScreen(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
 }
 
 function renderTimeline() {
@@ -59,81 +157,7 @@ function renderTimeline() {
     });
 }
 
-function goToLobby() {
-    switchScreen('screen-lobby');
-    const list = document.getElementById('lobby-list');
-    list.innerHTML = '';
-
-    // Add CURRENT player first
-    addPlayerToLobby(state.currentPlayer, true);
-
-    // Simulate other players joining one by one
-    const npcPlayers = state.players.filter(p => p.name !== state.currentPlayer.name);
-    let joinedCount = 0;
-
-    npcPlayers.forEach((player, index) => {
-        setTimeout(() => {
-            addPlayerToLobby(player, false);
-            joinedCount++;
-
-            if (joinedCount === npcPlayers.length) {
-                document.getElementById('start-game-btn').style.display = 'block';
-                document.getElementById('player-status-msg').innerText = "ALL PLAYERS PRESENT. READY TO BEGIN.";
-                document.getElementById('player-status-msg').style.color = "var(--safe-green)";
-            } else {
-                document.getElementById('player-status-msg').innerText = `WAITING FOR PLAYERS (${joinedCount + 1}/6)...`;
-            }
-        }, 800 * (index + 1));
-    });
-}
-
-function addPlayerToLobby(player, isYou) {
-    const list = document.getElementById('lobby-list');
-    const item = document.createElement('div');
-    item.className = 'player-item';
-    item.style.animation = 'fadeIn 0.3s ease forwards';
-    item.innerHTML = `
-        <div style="display: flex; align-items: center;">
-            <div class="status-indicator"></div>
-            <span>${player.name} ${isYou ? '(YOU)' : ''}</span>
-        </div>
-        <div>
-            <span style="color:var(--text-muted); font-size: 0.7rem;">CONNECTING...</span>
-        </div>
-    `;
-    list.appendChild(item);
-
-    // After a short delay, show "READY"
-    setTimeout(() => {
-        item.querySelector('div:last-child').innerHTML =
-            player.badges > 0 ? `<span class="badge">${player.badges}</span>` : '<span style="color:var(--safe-green); font-size:0.7rem;">READY</span>';
-    }, 500);
-}
-
-function renderLobby() {
-    const list = document.getElementById('lobby-list');
-    list.innerHTML = '';
-
-    state.players.forEach(p => {
-        const item = document.createElement('div');
-        item.className = 'player-item';
-        item.innerHTML = `
-            <div style="display: flex; align-items: center;">
-                <div class="status-indicator"></div>
-                <span>${p.name} ${p.name === state.currentPlayer.name ? '(YOU)' : ''}</span>
-            </div>
-            <div>
-                ${p.badges > 0 ? `<span class="badge">${p.badges}</span>` : '<span style="color:#444">0 B</span>'}
-            </div>
-        `;
-        list.appendChild(item);
-    });
-}
-
-function startGame() {
-    switchScreen('screen-game');
-    loadStage(state.currentStageIndex);
-}
+// --- GAMEPLAY LOGIC ---
 
 function loadStage(index) {
     const stage = state.stages[index];
@@ -183,10 +207,14 @@ function startTimer(seconds) {
 function submitReaction() {
     clearInterval(timerInterval);
     const diff = Math.abs(currentTime - 0.5);
-    const success = diff < 0.2; // 0.2s margin of error
+    const success = diff < 0.2;
 
     if (success) {
         state.currentPlayer.badges++;
+        // Update badges in Firebase so everyone sees it
+        database.ref('game/players/' + state.currentPlayer.id).update({
+            badges: state.currentPlayer.badges
+        });
         showResults(true);
     } else {
         showResults(false);
@@ -201,12 +229,6 @@ function showResults(survived) {
     switchScreen('screen-results');
     const list = document.getElementById('results-list');
 
-    // Simulate others
-    const others = state.players.filter(p => p.name !== state.currentPlayer.name);
-    others.forEach(p => {
-        if (Math.random() > 0.3) p.badges++;
-    });
-
     list.innerHTML = `
         <div class="card" style="border-color: ${survived ? 'var(--safe-green)' : 'var(--danger-red)'}">
             <h2 style="color: ${survived ? 'var(--safe-green)' : 'var(--danger-red)'}">
@@ -216,17 +238,25 @@ function showResults(survived) {
         </div>
         
         <h3 style="font-size: 0.8rem; margin: 20px 0 10px;">SURVIVOR LEADERBOARD</h3>
-        <div class="card">
-            ${state.players.sort((a, b) => b.badges - a.badges).map(p => `
+        <div class="card" id="leaderboard-live">
+            <!-- Filled by Firebase listener -->
+        </div>
+    `;
+
+    // Leaderboard listener inside results
+    database.ref('game/players').on('value', (snapshot) => {
+        const players = Object.values(snapshot.val() || {});
+        const board = document.getElementById('leaderboard-live');
+        if (board) {
+            board.innerHTML = players.sort((a, b) => b.badges - a.badges).map(p => `
                 <div class="player-item" style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #222;">
                     <span>${p.name}</span>
                     <span class="badge" style="background: ${p.badges > 0 ? 'gold' : '#333'}">${p.badges}</span>
                 </div>
-            `).join('')}
-        </div>
-    `;
+            `).join('');
+        }
+    });
 
-    // Move to next stage logic
     if (survived) {
         state.stages[state.currentStageIndex].status = 'completed';
         state.currentStageIndex++;
@@ -237,6 +267,8 @@ function showResults(survived) {
 }
 
 function nextStage() {
+    // Reset game status for everyone if host clicks next? 
+    // For now just return to menu locally
     renderTimeline();
     document.getElementById('display-badges').innerText = state.currentPlayer.badges;
     switchScreen('screen-welcome');
