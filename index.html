@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Alice in Borderland | Digital Game</title>
+    <meta name="description" content="A multi-stage survival game. Earn badges, survive the tasks.">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Screen 1: Welcome/Menu -->
+        <section id="screen-welcome" class="screen active">
+            <header style="text-align: center; margin: 40px 0;">
+                <h1 class="glitch-text" style="font-size: 2.8rem;">BORDERLAND</h1>
+                <p style="color: var(--text-muted); font-family: 'JetBrains Mono'; font-size: 0.8rem;">SURVIVAL PROTOCOL
+                </p>
+            </header>
+
+            <!-- Registration -->
+            <div id="registration-form" class="card">
+                <h3 style="font-size: 0.9rem; margin-bottom: 20px;">IDENTIFY YOURSELF</h3>
+                <div class="input-group">
+                    <input type="text" id="player-name-input" class="input-field" placeholder="Enter Name...">
+                </div>
+                <button class="btn btn-primary" onclick="registerPlayer()">INITIALIZE</button>
+            </div>
+
+            <!-- Main Menu (Visible after Register) -->
+            <div id="main-menu" style="display: none;">
+                <div class="card" style="margin-bottom: 30px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <h3 id="display-name" style="font-size: 1rem; color: var(--primary-red);">PLAYER_NAME</h3>
+                        <span class="badge" id="display-badges">0</span>
+                    </div>
+                </div>
+
+                <h3 style="font-size: 0.8rem; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 10px;">TRACK
+                    STATUS</h3>
+                <div class="timeline" id="stage-timeline">
+                    <!-- Timeline items injected by JS -->
+                </div>
+
+                <button class="btn btn-primary" style="margin-top: 20px;" onclick="goToLobby()">ENTER LOBBY</button>
+            </div>
+
+            <p style="text-align: center; font-size: 0.6rem; color: #333; margin-top: auto; padding-bottom: 20px;">
+                TERMINAL ID: 0869-ALICE</p>
+        </section>
+
+        <!-- Screen 2: Lobby -->
+        <section id="screen-lobby" class="screen">
+            <h2 class="glitch-text">THE LOBBY</h2>
+            <p style="color: var(--text-muted); margin-bottom: 20px;">Waiting for players (5-6 Required)</p>
+
+            <div class="card player-list" id="lobby-list">
+                <!-- Players will be injected here -->
+            </div>
+
+            <div class="card" style="border-style: dashed;">
+                <p id="player-status-msg" style="text-align: center; color: var(--primary-red);">WAITING FOR HOST...</p>
+            </div>
+
+            <button class="btn btn-primary" id="start-game-btn" style="display: none;" onclick="startGame()">START FIRST
+                STAGE</button>
+        </section>
+
+        <!-- Screen 3: Game Stage (Dynamic) -->
+        <section id="screen-game" class="screen">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div>
+                    <p style="font-size: 0.7rem; color: var(--text-muted);">CURRENT STAGE</p>
+                    <h3 id="stage-title">STREAK OF LUCK</h3>
+                </div>
+                <div id="game-timer"
+                    style="font-family: 'JetBrains Mono'; font-size: 1.5rem; color: var(--primary-red);">00:00</div>
+            </div>
+
+            <div id="game-content" class="card"
+                style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                <!-- Task content injected here -->
+                <p>INITIALIZING TASK...</p>
+            </div>
+
+            <div id="player-action-area" style="margin-top: 20px;">
+                <!-- Context buttons injected here -->
+            </div>
+        </section>
+
+        <!-- Screen 4: Results -->
+        <section id="screen-results" class="screen">
+            <h2 class="glitch-text">STAGE CLEAR</h2>
+            <div id="results-list" style="margin-top: 20px;">
+                <!-- Results injected here -->
+            </div>
+            <button class="btn btn-primary" onclick="nextStage()">RETURNING TO MENU...</button>
+        </section>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+
+</html>
