@@ -60,16 +60,54 @@ function renderTimeline() {
 }
 
 function goToLobby() {
-    renderLobby();
     switchScreen('screen-lobby');
+    const list = document.getElementById('lobby-list');
+    list.innerHTML = '';
 
-    // Simulate "Host" starting game
+    // Add CURRENT player first
+    addPlayerToLobby(state.currentPlayer, true);
+
+    // Simulate other players joining one by one
+    const npcPlayers = state.players.filter(p => p.name !== state.currentPlayer.name);
+    let joinedCount = 0;
+
+    npcPlayers.forEach((player, index) => {
+        setTimeout(() => {
+            addPlayerToLobby(player, false);
+            joinedCount++;
+
+            if (joinedCount === npcPlayers.length) {
+                document.getElementById('start-game-btn').style.display = 'block';
+                document.getElementById('player-status-msg').innerText = "ALL PLAYERS PRESENT. READY TO BEGIN.";
+                document.getElementById('player-status-msg').style.color = "var(--safe-green)";
+            } else {
+                document.getElementById('player-status-msg').innerText = `WAITING FOR PLAYERS (${joinedCount + 1}/6)...`;
+            }
+        }, 800 * (index + 1));
+    });
+}
+
+function addPlayerToLobby(player, isYou) {
+    const list = document.getElementById('lobby-list');
+    const item = document.createElement('div');
+    item.className = 'player-item';
+    item.style.animation = 'fadeIn 0.3s ease forwards';
+    item.innerHTML = `
+        <div style="display: flex; align-items: center;">
+            <div class="status-indicator"></div>
+            <span>${player.name} ${isYou ? '(YOU)' : ''}</span>
+        </div>
+        <div>
+            <span style="color:var(--text-muted); font-size: 0.7rem;">CONNECTING...</span>
+        </div>
+    `;
+    list.appendChild(item);
+
+    // After a short delay, show "READY"
     setTimeout(() => {
-        if (state.players.length >= 6) {
-            document.getElementById('start-game-btn').style.display = 'block';
-            document.getElementById('player-status-msg').innerText = "ALL PLAYERS PRESENT. READY TO BEGIN.";
-        }
-    }, 1500);
+        item.querySelector('div:last-child').innerHTML =
+            player.badges > 0 ? `<span class="badge">${player.badges}</span>` : '<span style="color:var(--safe-green); font-size:0.7rem;">READY</span>';
+    }, 500);
 }
 
 function renderLobby() {
