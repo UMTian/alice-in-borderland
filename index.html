@@ -11,13 +11,26 @@
 
 <body>
     <div id="app">
+        <!-- Global Header -->
+        <header style="text-align: center; margin: 20px 0;">
+            <h1 class="glitch-text" style="font-size: 2.2rem; margin-bottom: 0;">BORDERLAND</h1>
+            <p
+                style="color: var(--primary-red); font-family: 'JetBrains Mono'; font-size: 0.6rem; font-weight: bold; letter-spacing: 4px; margin-bottom: 10px;">
+                V2.0 MULTIPLAYER ACTIVE</p>
+
+            <div id="connection-status"
+                style="display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #666; font-family: 'JetBrains Mono';">
+                <div id="status-dot"
+                    style="width: 6px; height: 6px; border-radius: 50%; background: #444; margin-right: 6px;"></div>
+                SYSTEM: <span id="status-text">CONNECTING...</span>
+            </div>
+        </header>
+
         <!-- Screen 1: Welcome/Menu -->
         <section id="screen-welcome" class="screen active">
-            <header style="text-align: center; margin: 40px 0;">
-                <h1 class="glitch-text" style="font-size: 2.8rem;">BORDERLAND</h1>
-                <p style="color: var(--text-muted); font-family: 'JetBrains Mono'; font-size: 0.8rem;">SURVIVAL PROTOCOL
-                </p>
-            </header>
+            <p
+                style="color: var(--text-muted); font-family: 'JetBrains Mono'; font-size: 0.6rem; text-align: center; margin-bottom: 20px;">
+                SURVIVAL PROTOCOL</p>
 
             <!-- Registration -->
             <div id="registration-form" class="card">
@@ -28,46 +41,123 @@
                 <button class="btn btn-primary" onclick="registerPlayer()">INITIALIZE</button>
             </div>
 
-            <!-- Main Menu (Visible after Register) -->
+            <!-- Main Dashboard (Visible after Register) -->
             <div id="main-menu" style="display: none;">
-                <div class="card" style="margin-bottom: 30px;">
+                <div class="card" style="margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <h3 id="display-name" style="font-size: 1rem; color: var(--primary-red);">PLAYER_NAME</h3>
+                        <div>
+                            <h3 id="display-name"
+                                style="font-size: 1rem; color: var(--primary-red); margin-bottom: 5px;">PLAYER_NAME</h3>
+                            <button onclick="leaveGame()"
+                                style="background: none; border: none; color: var(--text-muted); font-size: 0.5rem; text-decoration: underline; cursor: pointer; padding: 0;">LOGOUT
+                                / LEAVE</button>
+                        </div>
                         <span class="badge" id="display-badges">0</span>
                     </div>
                 </div>
 
-                <h3 style="font-size: 0.8rem; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 10px;">TRACK
-                    STATUS</h3>
-                <div class="timeline" id="stage-timeline">
-                    <!-- Timeline items injected by JS -->
+                <!-- Live Lobby Tracker -->
+                <div class="card"
+                    style="border-color: var(--primary-red); background: rgba(255, 60, 60, 0.05); margin-bottom: 25px;">
+                    <h3 style="font-size: 0.7rem; color: var(--primary-red); margin-bottom: 10px; letter-spacing: 2px;">
+                        LIVE LOBBY</h3>
+                    <div style="font-size: 0.6rem; color: #888; margin-bottom: 10px;">
+                        PLAYERS IN SYNC: <span id="player-count-sync" style="color: var(--safe-green);">0</span>
+                    </div>
+                    <div id="lobby-list" style="max-height: 150px; overflow-y: auto;">
+                        <!-- Players injected here -->
+                    </div>
+
+                    <h3
+                        style="font-size: 0.7rem; color: gold; margin-top:20px; margin-bottom: 10px; letter-spacing: 2px;">
+                        LEADERBOARD</h3>
+                    <div id="leaderboard-list" style="max-height: 200px; overflow-y: auto;">
+                        <!-- Medals injected here -->
+                    </div>
                 </div>
 
-                <button class="btn btn-primary" style="margin-top: 20px;" onclick="goToLobby()">ENTER LOBBY</button>
+                <h3 style="font-size: 0.7rem; letter-spacing: 2px; color: var(--text-muted); margin-bottom: 15px;">STAGE
+                    TRACKER</h3>
+                <div class="mission-track" id="stage-timeline">
+                    <!-- Cards injected by JS -->
+                </div>
+
+                <div id="lobby-controls" style="margin-top: 20px;">
+                    <p id="player-status-msg"
+                        style="text-align: center; color: var(--text-muted); font-size: 0.7rem; margin-bottom: 10px;">
+                        WAITING FOR HOST...</p>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-primary" id="start-game-btn" style="display: none; flex: 2;"
+                            onclick="startGame()">START GAME</button>
+                        <button class="btn" id="reset-lobby-btn"
+                            style="display: none; flex: 1; background: #222; font-size: 0.6rem;"
+                            onclick="resetLobby()">RESET ALL</button>
+                    </div>
+                </div>
             </div>
 
-            <p style="text-align: center; font-size: 0.6rem; color: #333; margin-top: auto; padding-bottom: 20px;">
+            <p style="text-align: center; font-size: 0.5rem; color: #222; margin-top: auto; padding-bottom: 20px;">
                 TERMINAL ID: 0869-ALICE</p>
         </section>
 
-        <!-- Screen 2: Lobby -->
-        <section id="screen-lobby" class="screen">
-            <h2 class="glitch-text">THE LOBBY</h2>
-            <p style="color: var(--text-muted); margin-bottom: 20px;">Waiting for players (5-6 Required)</p>
+        <!-- Screen 2: Lobby (REMOVED - INTEGRATED INTO DASHBOARD) -->
 
-            <div class="card player-list" id="lobby-list">
-                <!-- Players will be injected here -->
+        <!-- Screen 4: Rules Briefing -->
+        <section id="screen-rules" class="screen">
+            <div class="card"
+                style="border-color: var(--primary-red); background: rgba(255, 60, 60, 0.05); text-align: center;">
+                <h2 class="glitch-text" style="font-size: 1.5rem; margin-bottom: 20px;">[ RULES_BRIEFING ]</h2>
+                <div id="rules-content"
+                    style="font-size: 0.9rem; line-height: 1.6; margin-bottom: 30px; text-align: left; font-family: 'JetBrains Mono';">
+                    <!-- Rule text injected here -->
+                </div>
+
+                <!-- Audio Placeholder Area -->
+                <div
+                    style="background: #222; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #444;">
+                    <span style="font-size: 0.6rem; color: #666;">AUDIO_FILE_RESERVED (.mp3/.wav)</span>
+                </div>
+
+                <div id="rule-actions">
+                    <p style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 10px;">WAITING FOR HOST TO
+                        CONFIGURE...</p>
+                    <button class="btn btn-primary" id="final-start-btn" style="display: none;"
+                        onclick="showHostSettings()">CONFIGURE & START</button>
+                    <button class="btn" style="background: #222; margin-top: 10px;"
+                        onclick="switchScreen('screen-welcome')">BACK TO MAP</button>
+                </div>
             </div>
-
-            <div class="card" style="border-style: dashed;">
-                <p id="player-status-msg" style="text-align: center; color: var(--primary-red);">WAITING FOR HOST...</p>
-            </div>
-
-            <button class="btn btn-primary" id="start-game-btn" style="display: none;" onclick="startGame()">START FIRST
-                STAGE</button>
         </section>
 
-        <!-- Screen 3: Game Stage (Dynamic) -->
+        <!-- Host Settings Modal (Layered over Rules) -->
+        <div id="host-settings-modal"
+            style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; align-items: center; justify-content: center; padding: 20px;">
+            <div class="card" style="width: 100%; border-color: var(--safe-green);">
+                <h3 style="color: var(--safe-green); margin-bottom: 20px;">GAME CONFIGURATION</h3>
+
+                <div class="input-group">
+                    <label style="font-size: 0.6rem; color: #888;">TARGET PLAYERS</label>
+                    <input type="number" id="setting-players" class="input-field" value="2">
+                </div>
+
+                <div class="input-group">
+                    <label style="font-size: 0.6rem; color: #888;">TIME LIMIT (SECONDS) / ROUNDS</label>
+                    <input type="number" id="setting-time" class="input-field" value="60">
+                </div>
+
+                <div class="input-group" id="collab-setting" style="display:none;">
+                    <label style="font-size: 0.6rem; color: #888;">COLLABORATION QUESTIONS (STAGE 3)</label>
+                    <input type="number" id="setting-collab-q" class="input-field" value="80">
+                </div>
+
+                <button class="btn btn-primary" style="background: var(--safe-green); color: black;"
+                    onclick="confirmStart()">INITIATE GAME</button>
+                <button class="btn" style="background: #333;"
+                    onclick="document.getElementById('host-settings-modal').style.display='none'">CANCEL</button>
+            </div>
+        </div>
+
+        <!-- Screen 5: Game Stage (Dynamic) -->
         <section id="screen-game" class="screen">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <div>
@@ -75,7 +165,8 @@
                     <h3 id="stage-title">STREAK OF LUCK</h3>
                 </div>
                 <div id="game-timer"
-                    style="font-family: 'JetBrains Mono'; font-size: 1.5rem; color: var(--primary-red);">00:00</div>
+                    style="font-family: 'JetBrains Mono'; font-size: 1.5rem; color: var(--primary-red);">
+                    00:00</div>
             </div>
 
             <div id="game-content" class="card"
@@ -97,13 +188,26 @@
             </div>
             <button class="btn btn-primary" onclick="nextStage()">RETURNING TO MENU...</button>
         </section>
+
     </div>
 
     <!-- Firebase SDK (Multiplayer Bridge) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
-    <script src="game.js"></script>
+    <script src="hunter.js"></script>
+    <script src="wolf.js"></script>
+    <script src="collaborate.js"></script>
+    <script src="killer.js"></script>
+    <script src="maze.js"></script>
+    <script src="trust.js"></script>
+    <script src="math.js"></script>
+    <script src="dodge.js"></script>
+    <script src="chase.js"></script>
+    <script src="big.js"></script>
+    <script src="joker.js"></script>
+    <script src="train.js"></script>
+    <script src="game.js?v=10"></script>
 </body>
 
 </html>
